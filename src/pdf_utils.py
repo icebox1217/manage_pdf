@@ -1,14 +1,15 @@
 import io
 import numpy as np
 import cv2
+from PIL import Image
 from wand.image import Image as WandImage
 from wand.color import Color as WandColor
-from PyPDF2 import PdfFileReader, PdfFileWriter
+from PyPDF2 import PdfFileReader, PdfFileWriter, PdfFileMerger
 from config import *
 
 
 class PdfUtils:
-    def __init__(self, resolution=200):
+    def __init__(self, resolution=75):
         self.resolution = resolution  # DPI
 
     def pdfTojpgs(self, pdf_path):
@@ -56,6 +57,30 @@ class PdfUtils:
                 cv_img = cv2.imdecode(img_buffer, cv2.IMREAD_GRAYSCALE)
             images.append(cv_img)
         return images
+
+    #
+    def imgsTopdf(self, cv_imgs, pdf_path, quality=100):
+        num = 0
+        merger = PdfFileMerger()
+        base, ext = os.path.splitext(pdf_path)
+
+        for idx in range(len(cv_imgs)):
+            page = cv_imgs[idx]
+            pil_img = Image.fromarray(page)
+
+            # write the each page to individual pdf file
+            path = "{}_{}{}".format(base, str(idx), ext)
+            pil_img.save(path, "PDF", resolution=self.resolution * quality)
+
+            # merge the seperate pdf files to single one
+            merger.append(PdfFileReader(path), "rb")
+            os.remove(path)
+
+            sys.stdout.write("\r   writing the page {} ...".format(idx + 1))
+            sys.stdout.flush()
+            num += 1
+        merger.write(pdf_path)
+        return num
 
 
 if __name__ == '__main__':

@@ -1,10 +1,11 @@
+import os
 import cv2
 import numpy as np
 import math
 
 
 class PageManage:
-    def __init__(self, bShow=True):
+    def __init__(self, bShow=False):
         self.blur_kernel = (3, 3)
 
         self.thresh_block_sz = 11
@@ -16,14 +17,17 @@ class PageManage:
         self.line_color = (0, 0, 255)
         self.line_thickness = 30
 
+    #
     def proc_page(self, page_path):
         gray = cv2.imread(page_path, cv2.IMREAD_GRAYSCALE)
-
         gray = cv2.blur(gray, self.blur_kernel)
+        # os.remove(page_path)
 
         crop = self.__crop_page(gray=gray)
 
         lines = self.__line_detect(gray=crop)
+
+        pages = self.__split_page(page=crop, lines=lines)
 
         if self.bShow:
             show_img = cv2.cvtColor(crop, cv2.COLOR_GRAY2BGR)
@@ -31,10 +35,9 @@ class PageManage:
                 for [[x1, y1, x2, y2]] in lines:
                     print((x1, y1), (x2, y2))
                     cv2.line(show_img, (x1, y1), (x2, y2), self.line_color, self.line_thickness)
-            cv2.imwrite("line.jpg", show_img)
             cv2.imshow("line", cv2.resize(show_img, (300, 700)))
-
-        cv2.waitKey(0)
+            cv2.waitKey(0)
+        return pages
 
     #
     def __crop_page(self, gray):
@@ -85,3 +88,45 @@ class PageManage:
                 if math.fabs(y1 - y2) < math.fabs(x1 - x2):
                     candi_lines.append(line)
             return candi_lines
+
+    #
+    def __split_page(self, page, lines):
+        height, width = page.shape[:2]
+        if lines is not None and len(lines) != 0:
+            lines_y = []
+            for [[x1, y1, x2, y2]] in lines:
+                lines_y.append((y1 + y2) / 2)
+            lines_y.sort()
+
+            i = 0
+            sub_pages = []
+            sub_heights = []
+            sub_widths = []
+
+            start_y, end_y = None, None
+            while i < len(lines_y):
+                if start_y is None:
+                    start_y = lines_y[i]
+                elif math.fabs(start_y - lines_y[i]) < width / 5:
+                    start_y = lines_y[i]
+                else:
+                    end_y = lines_y[i]
+                    sub_page = page[start_y + 10: end_y - 10]
+                    sub_pages.append(sub_page)
+                    start_y = end_y
+                    sub_heights.append(sub_page.shape[0])
+                    sub_widths.append(sub_page.shape[1])
+
+                i += 1
+
+            ones = np.ones((max(sub_heights), max(sub_widths)), dtype=np.uint8) * 255
+            new_pages = []
+            for sub_page in sub_pages:
+                new_page = ones.copy()
+                new_page[:sub_page.shape[0], :sub_page.shape[1]] = sub_page
+                new_pages.append(new_page)
+
+                if self.bShow:
+                    cv2.imshow("page", cv2.resize(new_page, (300, 500)))
+                    cv2.waitKey(1000)
+            return new_pages

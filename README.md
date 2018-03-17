@@ -1,15 +1,6 @@
 # manage_pdf
 
 ## PDF to JPGs ##
-
-### PDF utils on Ubuntu ###
-    convert pdf to jpg with pdftoppm
-    install the pdftoppm
-     `$  sudo apt-get install poppler-utils`
-
-    convert the pdf file to the image file with command line
-    `$ pdf2jpg_ppm(in_name='../data/Endesa1.pdf', out_name='../data/Endesa.jpg')`
-
 ### In case of Anaconda ###
     
     ImageMagick
