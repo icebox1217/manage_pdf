@@ -9,7 +9,7 @@ from config import *
 
 
 class PdfUtils:
-    def __init__(self, resolution=75):
+    def __init__(self, resolution=300):
         self.resolution = resolution  # DPI
 
     def pdfTojpgs(self, pdf_path):
@@ -67,12 +67,13 @@ class PdfUtils:
         for idx in range(len(cv_imgs)):
             page = cv_imgs[idx]
             pil_img = Image.fromarray(page)
+            pil_img.info['dpi'] = (self.resolution, self.resolution)
 
             # write the each page to individual pdf file
             path = "{}_{}{}".format(base, str(idx), ext)
-            pil_img.save(path, "PDF", resolution=self.resolution * quality)
+            pil_img.save(path, "PDF", resolution=int(self.resolution * (quality / 100)))
 
-            # merge the seperate pdf files to single one
+            # merge the separate pdf files to single one
             merger.append(PdfFileReader(path), "rb")
             os.remove(path)
 

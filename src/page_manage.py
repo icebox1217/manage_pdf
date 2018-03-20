@@ -5,7 +5,7 @@ import math
 
 
 class PageManage:
-    def __init__(self, bShow=False):
+    def __init__(self, resolution=300, bShow=False):
         self.blur_kernel = (3, 3)
 
         self.thresh_block_sz = 11
@@ -17,11 +17,17 @@ class PageManage:
         self.line_color = (0, 0, 255)
         self.line_thickness = 30
 
+        self.inch_h = 11
+        self.inch_w = 8.5
+        self.DPI = resolution
+        self.num_px_width = self.inch_w * self.DPI
+        self.num_px_height = self.inch_h * self.DPI
+
     #
     def proc_page(self, page_path):
         gray = cv2.imread(page_path, cv2.IMREAD_GRAYSCALE)
         gray = cv2.blur(gray, self.blur_kernel)
-        # os.remove(page_path)
+        os.remove(page_path)
 
         crop = self.__crop_page(gray=gray)
 
@@ -111,7 +117,7 @@ class PageManage:
                     start_y = lines_y[i]
                 else:
                     end_y = lines_y[i]
-                    sub_page = page[start_y + 10: end_y - 10]
+                    sub_page = page[int(start_y + 10): int(end_y - 10), 10:-10]
                     sub_pages.append(sub_page)
                     start_y = end_y
                     sub_heights.append(sub_page.shape[0])
@@ -119,11 +125,30 @@ class PageManage:
 
                 i += 1
 
-            ones = np.ones((max(sub_heights), max(sub_widths)), dtype=np.uint8) * 255
+            # create the template while background image
+            sub_h = max(sub_heights)
+            sub_w = max(sub_widths)
+
+            if (sub_h / sub_w) > (self.num_px_height / self.num_px_width):
+                new_h = int(self.num_px_height)
+                new_w = int(sub_w * (self.num_px_height / sub_h))
+            else:
+                new_h = int(sub_h * (self.num_px_width / sub_w))
+                new_w = int(self.num_px_width)
+
+            ones = np.ones((sub_h, sub_w), dtype=np.uint8) * 255
+            _new = np.ones((self.num_px_height, self.num_px_width), dtype=np.uint8) * 255
+
             new_pages = []
             for sub_page in sub_pages:
-                new_page = ones.copy()
-                new_page[:sub_page.shape[0], :sub_page.shape[1]] = sub_page
+                norm_sz_img = ones.copy()
+                norm_sz_img[:sub_page.shape[0], :sub_page.shape[1]] = sub_page
+
+                resize = cv2.resize(norm_sz_img, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
+                new_page = _new.copy()
+
+                x_pos = int((self.num_px_width - new_w) / 2 - 1)
+                new_page[:new_h, x_pos: x_pos + new_w] = resize
                 new_pages.append(new_page)
 
                 if self.bShow:

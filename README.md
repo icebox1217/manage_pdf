@@ -20,9 +20,6 @@
 		$pip install PythonMagick-0.9.13-cp35-cp35m-win_amd64.whl	
 		http://support.cs.nott.ac.uk/help/docs/image/ImageMagick/www/windows.html	             
         
-    [fpdf](http://code.google.com/p/pyfpdf)
-        
-    convert pdf to images
-
-    call the google cloud vision api
+    
+ 
 
